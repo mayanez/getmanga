@@ -8,6 +8,7 @@ from __future__ import division
 import os
 import re
 import sys
+import requests
 
 if sys.version_info >= (3, 0, 0):
     from io import BytesIO
@@ -77,6 +78,7 @@ class GetManga(object):
         sys.stdout.write("downloading {0} {1}:\n".format(self.title, chapter.number))
 
         pages = self.manga.get_pages(chapter.uri)
+        print pages
         progress(0, len(pages))
 
         threads = []
@@ -144,7 +146,7 @@ class MangaSite(object):
 
     @property
     def chapters(self):
-        content = uriopen(self.title_uri).decode('utf-8')
+        content = uriopen(self.title_uri)
         doc = html.fromstring(content)
         _chapters = doc.cssselect(self._chapters_css)
         if self.descending_list:
@@ -176,7 +178,8 @@ class MangaSite(object):
     def get_image_uri(self, page_uri):
         content = uriopen(page_uri).decode('utf-8')
         doc = html.fromstring(content)
-        return doc.cssselect(self._image_css)[0].get('src')
+        src_url = doc.cssselect(self._image_css)[0].get('src')
+        return src_url[:src_url.find('?')]
 
     @staticmethod
     def _get_chapter_number(chapter):
@@ -403,40 +406,7 @@ SITES = dict(animea=MangaAnimea,
 
 def uriopen(url):
     """Returns data available (html or image file) from a url"""
-    request = Request(url)
-    request.add_header('User-Agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_1) '
-                       'AppleWebKit/537.73.11 (KHTML, like Gecko) Version/7.0.1 Safari/537.73.11')
-    request.add_header('Accept-encoding', 'gzip')
-
-    data = None
-    retry = 0
-    while retry < 5:
-        try:
-            response = urlopen(request, timeout=15)
-            data = response.read()
-        except HTTPError as msg:
-            raise MangaException("HTTP Error: {0} - {1}\n".format(msg.code, url))
-        except Exception:
-            #what may goes here: urllib2.URLError, socket.timeout,
-            #                    httplib.BadStatusLine
-            retry += 1
-        else:
-            if 'content-length' in response.headers.keys():
-                if len(data) == int(response.headers.getheader('content-length')):
-                    retry = 5
-                else:
-                    data = None
-                    retry += 1
-            else:
-                retry = 5
-            if ('Content-Encoding', 'gzip') in response.headers.items():
-                compressed = BytesIO(data)
-                data = GzipFile(fileobj=compressed).read()
-            response.close()
-    if data:
-        return data
-    else:
-        raise MangaException("Failed to retrieve {0}".format(url))
+    return requests.get(url).content
 
 
 def progress(page, total):
