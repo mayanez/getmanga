@@ -78,7 +78,6 @@ class GetManga(object):
         sys.stdout.write("downloading {0} {1}:\n".format(self.title, chapter.number))
 
         pages = self.manga.get_pages(chapter.uri)
-        print pages
         progress(0, len(pages))
 
         threads = []
@@ -146,7 +145,7 @@ class MangaSite(object):
 
     @property
     def chapters(self):
-        content = uriopen(self.title_uri)
+        content = uriopen(self.title_uri).decode('utf-8')
         doc = html.fromstring(content)
         _chapters = doc.cssselect(self._chapters_css)
         if self.descending_list:
