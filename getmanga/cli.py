@@ -20,7 +20,7 @@ except ImportError:
 from getmanga import SITES, MangaException, GetManga
 
 
-version = 0.5
+version = pkg_resources.require("GetManga")[0].version
 
 
 def cmdparse():
